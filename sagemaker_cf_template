@@ -1,0 +1,60 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#    http://aws.amazon.com/apache2.0/
+# or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This CloudFormation Template deploys a Glue Catalog entry for the MIMIC-III dataset in the AWS Open Data Registry and a Glue Notebook to run studies against it.
+
+#https://aws.amazon.com/sagemaker/pricing/
+Parameters:
+  NotebookInstanceType:
+    Type: String
+    Description: Name of the notebook instance
+    Default: ml.t3.medium
+    AllowedValues:
+      - "ml.t3.medium"
+      - "ml.t3.large"
+      - "ml.t3.xlarge"
+      - "ml.t3.2xlarge"
+      - "ml.m5.4xlarge"
+      - "ml.m5.8xlarge"
+  StorageSize:
+    Type: Number
+    Description: Root volume size in GB
+    Default: 5
+    MinValue: 5
+    MaxValue: 200
+
+Resources:
+  MIMICNotebookInstance:
+    Type: "AWS::SageMaker::NotebookInstance"
+    Properties:
+      VolumeSizeInGB: !Ref StorageSize
+      NotebookInstanceName: !Sub "MIMIC-Notebook"
+      InstanceType: !Ref NotebookInstanceType
+      DefaultCodeRepository: "https://github.com/MIT-LCP/mimic-code"
+      RoleArn: !GetAtt ExecutionRole.Arn
+
+  ExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "sagemaker.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonAthenaFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
